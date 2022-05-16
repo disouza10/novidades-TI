@@ -67,7 +67,36 @@ def netflix():
 
   return articles
 
-# def github():
+def github():
+  url = 'https://github.blog/category/engineering/'
+  page = requests.get(url)
+  soup = BeautifulSoup(page.content, 'html.parser')
+  file_exists = os.path.exists('github_ids.csv')
+  posts = soup.find_all('article', {'class': ['post', 'type-post', 'status-publish']})
+  articles = []
+
+  if not file_exists:
+    with open('github_ids.csv', 'w', encoding='UTF8') as f:
+      writer = csv.writer(f)
+      for i in range(len(posts)):
+        writer.writerow([posts[i]['id']])
+        link = posts[i].find('a', class_="Link--primary")
+        articles.append({ 'id': posts[i]['id'], 'title': link.get_text(), 'link': link['href'] })
+  else:
+    ids = set()
+    with open('github_ids.csv', encoding="utf8") as f:
+      csv_reader = csv.reader(f)
+      for line in csv_reader:
+        ids.add(line[0])
+
+    with open('github_ids.csv', 'a', encoding='UTF8') as f:
+      writer = csv.writer(f)
+      for i in range(len(posts)):
+        if posts[i]['id'] not in ids:
+          writer.writerow([posts[i]['id']])
+          articles.append({ 'title': posts[i]['id'], 'link': 'https://blog.twitter.com/' + posts[i].a['href'] })
+
+  return articles
 
 def twitter():
   url = 'https://blog.twitter.com/engineering/en_us/topics/insights'
@@ -100,11 +129,11 @@ def twitter():
   return articles
 
 def main():
-  # new_spotify_articles = spotify()
-  # new_netflix_articles = netflix()
-  # new_github_articles = github()
+  new_spotify_articles = spotify()
+  new_netflix_articles = netflix()
+  new_github_articles = github()
   new_twitter_articles = twitter()
-  # print(new_twitter_articles)
+  # print(new_github_articles)
 
   # cheguei aqui já com o dictionary articles contendo os valores a serem enviados
 
