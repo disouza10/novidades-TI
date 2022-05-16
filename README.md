@@ -1,2 +1,1 @@
 # novidades-TI
-# novidades-TI
