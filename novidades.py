@@ -1,7 +1,12 @@
+# Necessário instalar: pip install python-telegram-bot
+
 from bs4 import BeautifulSoup
 import requests
 import csv
 import os.path
+import telegram
+
+# TODO: adicionar mensagem de erro caso eu não consiga achar os artigos
 
 def spotify():
   url = 'https://engineering.atspotify.com/'
@@ -16,7 +21,7 @@ def spotify():
       writer = csv.writer(f)
       for i in range(len(posts)):
         writer.writerow([posts[i]['id']])
-        articles.append({ 'id': posts[i]['id'], 'title': posts[i].find('a')['title'], 'link': posts[i].find('a')['href'] })
+        articles.append({ 'id': posts[i]['id'], 'title': posts[i].find('a')['title'], 'link': posts[i].find('a')['href'], 'source': 'spotify' })
   else:
     ids = set()
     with open('spotify_ids.csv', encoding="utf8") as f:
@@ -29,7 +34,7 @@ def spotify():
       for i in range(len(posts)):
         if posts[i]['id'] not in ids:
           writer.writerow([posts[i]['id']])
-          articles.append({ 'id': posts[i]['id'], 'title': posts[i].find('a')['title'], 'link': posts[i].find('a')['href'] })
+          articles.append({ 'id': posts[i]['id'], 'title': posts[i].find('a')['title'], 'link': posts[i].find('a')['href'], 'source': 'spotify' })
 
   return articles
 
@@ -48,7 +53,8 @@ def netflix():
         if posts[i].span is not None:
           writer.writerow([posts[i]['data-post-id']])
           title = posts[i].span.get_text()
-          articles.append({ 'id': posts[i]['data-post-id'], 'title': title, 'link': posts[i].a['href'] })
+          link = posts[i].a['href'].split('?source')[0]
+          articles.append({ 'id': posts[i]['data-post-id'], 'title': title, 'link': link, 'source': 'netflix' })
   else:
     ids = set()
     with open('netflix_ids.csv', encoding="utf8") as f:
@@ -63,7 +69,8 @@ def netflix():
           if posts[i].span is not None:
             writer.writerow([posts[i]['data-post-id']])
             title = posts[i].span.get_text()
-            articles.append({ 'id': posts[i]['data-post-id'], 'title': title, 'link': posts[i].a['href'] })
+            link = posts[i].a['href'].split('?source')[0]
+            articles.append({ 'id': posts[i]['data-post-id'], 'title': title, 'link': link, 'source': 'netflix' })
 
   return articles
 
@@ -81,7 +88,7 @@ def github():
       for i in range(len(posts)):
         writer.writerow([posts[i]['id']])
         link = posts[i].find('a', class_="Link--primary")
-        articles.append({ 'id': posts[i]['id'], 'title': link.get_text(), 'link': link['href'] })
+        articles.append({ 'id': posts[i]['id'], 'title': link.get_text(), 'link': link['href'], 'source': 'github' })
   else:
     ids = set()
     with open('github_ids.csv', encoding="utf8") as f:
@@ -94,7 +101,8 @@ def github():
       for i in range(len(posts)):
         if posts[i]['id'] not in ids:
           writer.writerow([posts[i]['id']])
-          articles.append({ 'title': posts[i]['id'], 'link': 'https://blog.twitter.com/' + posts[i].a['href'] })
+          link = posts[i].find('a', class_="Link--primary")
+          articles.append({ 'id': posts[i]['id'], 'title': link.get_text(), 'link': link['href'], 'source': 'github' })
 
   return articles
 
@@ -111,7 +119,7 @@ def twitter():
       writer = csv.writer(f)
       for i in range(len(posts)):
         writer.writerow([posts[i].a.get_text()])
-        articles.append({ 'title': posts[i].a.get_text(), 'link': 'https://blog.twitter.com/' + posts[i].a['href'] })
+        articles.append({ 'title': posts[i].a.get_text(), 'link': 'https://blog.twitter.com/' + posts[i].a['href'], 'source': 'twitter' })
   else:
     titles = set()
     with open('twitter_ids.csv', encoding="utf8") as f:
@@ -124,17 +132,34 @@ def twitter():
       for i in range(len(posts)):
         if posts[i].a.get_text() not in titles:
           writer.writerow([posts[i].a.get_text()])
-          articles.append({ 'title': posts[i].a.get_text(), 'link': 'https://blog.twitter.com/' + posts[i].a['href'] })
+          articles.append({ 'title': posts[i].a.get_text(), 'link': 'https://blog.twitter.com/' + posts[i].a['href'], 'source': 'twitter' })
 
   return articles
 
-def main():
-  new_spotify_articles = spotify()
-  new_netflix_articles = netflix()
-  new_github_articles = github()
-  new_twitter_articles = twitter()
-  # print(new_github_articles)
+def send_message(articles):
+  token_file = open('TELEGRAM_TOKEN.txt','r')
+  user_id_file = open('USER_ID.txt','r')
+  telegram_token = token_file.read()
+  user_id = user_id_file.read()
+  bot = telegram.Bot(token=telegram_token)
 
-  # cheguei aqui já com o dictionary articles contendo os valores a serem enviados
+  for article in articles:
+    text = '<b>Novo texto no blog: ' + article['source'].upper() + '</b>\n\n'
+    text += article['title'] + '\n' + article['link']
+    bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
+
+  token_file.close()
+  user_id_file.close()
+
+def main():
+  spotify_articles = spotify()
+  netflix_articles = netflix()
+  twitter_articles = twitter()
+  github_articles = github()
+
+  send_message(spotify_articles)
+  send_message(netflix_articles)
+  send_message(twitter_articles)
+  send_message(github_articles)
 
 main()
