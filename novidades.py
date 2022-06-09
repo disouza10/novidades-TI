@@ -6,6 +6,7 @@ import csv
 import os.path
 import telegram
 from datetime import datetime
+import threading
 
 windows_path = 'G:\\Projetos\\Python\\Novidades tech\\'
 
@@ -172,12 +173,12 @@ def send_message(articles):
 
   if len(articles) == 1:
     text = articles[0]['no_results']
+    bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
   else:
     for article in articles:
       text = '<b>Novo texto no blog: ' + article['source'].upper() + '</b>\n\n'
       text += article['title'] + '\n' + article['link']
-
-  bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
+      bot.send_message(chat_id=user_id, text=text, parse_mode='HTML')
 
   token_file.close()
   user_id_file.close()
@@ -194,11 +195,13 @@ def main():
     if len(article) == 1 and 'no_new_articles' in article[0]:
       log_message += article[0]['no_new_articles'] + ' em ' + datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n'
     else:
-      send_message(article)
+      thread = threading.Thread(target=send_message(article))
+      thread.start()
+      thread.join()
       source = article[0]['source'].title()
       log_message += 'Artigo do blog ' + source + ' enviado no telegram em ' + datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n'
 
-    with open(log_path, 'w', encoding='UTF8') as log_file:
+    with open(log_path, 'a', encoding='UTF8', newline='') as log_file:
       log_file.write(log_message)
 
 main()
