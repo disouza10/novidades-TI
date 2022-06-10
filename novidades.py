@@ -193,14 +193,14 @@ def main():
 
   for article in [spotify_articles, netflix_articles, github_articles, twitter_articles]:
     if len(article) == 1 and 'no_new_articles' in article[0]:
-      log_message += article[0]['no_new_articles'] + ' em ' + datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n'
+      log_message = article[0]['no_new_articles'] + ' em ' + datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n'
     else:
       thread = threading.Thread(target=send_message(article))
       thread.start()
       thread.join()
       source = article[0]['source'].title()
-      log_message += 'Artigo do blog ' + source + ' enviado no telegram em ' + datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n'
-
+      send_message(article)
+      log_message = 'Artigo do blog ' + source + ' enviado no telegram em ' + datetime.now().strftime('%d/%m/%Y %H:%M:%S') + '\n'
     with open(log_path, 'a', encoding='UTF8', newline='') as log_file:
       log_file.write(log_message)
 
